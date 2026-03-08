@@ -51,6 +51,6 @@ def update_team(team_id: int, payload: TeamUpdate, db: Session = Depends(get_dat
 def delete_team(team_id: int, db: Session = Depends(get_database)):
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
-        raise HTTPException(status_code=404, detail="Team cannot found")
+        raise HTTPException(status_code=404, detail="Team cannot be found")
     db.delete(team)
     db.commit()

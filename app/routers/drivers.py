@@ -47,7 +47,7 @@ def create_driver(payload: DriverCreate, db: Session = Depends(get_database)):
 def update_driver(driver_id: int, payload: DriverUpdate, db: Session = Depends(get_database)):
     driver = db.query(Driver).filter(Driver.id == driver_id).first()
     if not driver:
-        raise HTTPException(status_code=404, detail="Driver not found")
+        raise HTTPException(status_code=404, detail="Driver cannot be found")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(driver, field, value)
     db.commit()
@@ -58,6 +58,6 @@ def update_driver(driver_id: int, payload: DriverUpdate, db: Session = Depends(g
 def delete_driver(driver_id: int, db: Session = Depends(get_database)):
     driver = db.query(Driver).filter(Driver.id == driver_id).first()
     if not driver:
-        raise HTTPException(status_code=404, detail="Driver not found")
+        raise HTTPException(status_code=404, detail="Driver cannot be found")
     db.delete(driver)
     db.commit()
