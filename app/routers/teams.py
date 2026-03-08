@@ -19,7 +19,7 @@ def list_teams(
 
 @router.get("/{team_id}", response_model=TeamResponse)
 def get_team(team_id: int, db: Session = Depends(get_database)):
-    team = db.query(Team).filter(Team.id == team_id).first()
+    team = db.get(Team, team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
     return team
@@ -38,7 +38,7 @@ def create_team(payload: TeamCreate, db: Session = Depends(get_database)):
 
 @router.patch("/{team_id}", response_model=TeamResponse)
 def update_team(team_id: int, payload: TeamUpdate, db: Session = Depends(get_database)):
-    team = db.query(Team).filter(Team.id == team_id).first()
+    team = db.get(Team, team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team cannot be found")
     for field, value in payload.model_dump(exclude_unset=True).items():
@@ -49,7 +49,7 @@ def update_team(team_id: int, payload: TeamUpdate, db: Session = Depends(get_dat
 
 @router.delete("/{team_id}", status_code=204)
 def delete_team(team_id: int, db: Session = Depends(get_database)):
-    team = db.query(Team).filter(Team.id == team_id).first()
+    team = db.get(Team, team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team cannot be found")
     db.delete(team)

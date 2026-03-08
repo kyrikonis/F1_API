@@ -25,7 +25,7 @@ def list_drivers(
 
 @router.get("/{driver_id}", response_model=DriverResponse)
 def get_driver(driver_id: int, db: Session = Depends(get_database)):
-    driver = db.query(Driver).filter(Driver.id == driver_id).first()
+    driver = db.get(Driver, driver_id)
     if not driver:
         raise HTTPException(status_code=404, detail="Driver not found")
     return driver
@@ -45,7 +45,7 @@ def create_driver(payload: DriverCreate, db: Session = Depends(get_database)):
 
 @router.patch("/{driver_id}", response_model=DriverResponse)
 def update_driver(driver_id: int, payload: DriverUpdate, db: Session = Depends(get_database)):
-    driver = db.query(Driver).filter(Driver.id == driver_id).first()
+    driver = db.get(Driver, driver_id)
     if not driver:
         raise HTTPException(status_code=404, detail="Driver cannot be found")
     for field, value in payload.model_dump(exclude_unset=True).items():
@@ -56,7 +56,7 @@ def update_driver(driver_id: int, payload: DriverUpdate, db: Session = Depends(g
 
 @router.delete("/{driver_id}", status_code=204)
 def delete_driver(driver_id: int, db: Session = Depends(get_database)):
-    driver = db.query(Driver).filter(Driver.id == driver_id).first()
+    driver = db.get(Driver, driver_id)
     if not driver:
         raise HTTPException(status_code=404, detail="Driver cannot be found")
     db.delete(driver)
