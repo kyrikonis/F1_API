@@ -3,9 +3,11 @@ from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.database import get_database
+from app.models.constructor_standing import ConstructorStanding
 from app.models.driver import Driver
 from app.models.race import Race
 from app.models.result import Result
+from app.models.season_standing import SeasonStanding
 from app.models.team import Team
 
 router = APIRouter(prefix="/analysis", tags=["Analysis"])
@@ -13,7 +15,33 @@ router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
 @router.get("/standings/drivers/{year}")
 def driver_standings(year: int, db: Session = Depends(get_database)):
-    """World Drivers' Championship standings for a given season"""
+    """
+    World Drivers' Championship standings for a given season.
+    Returns official standings if available, falls back to driver with the highest sum of points. 
+    doesn't account for dropped scores or countback tiebreakers.
+    """
+    verified = (
+        db.query(SeasonStanding)
+        .filter(SeasonStanding.season == year)
+        .order_by(SeasonStanding.final_position)
+        .all()
+    )
+
+    if verified:
+        return [
+            {
+                "position": s.final_position,
+                "driver_id": s.driver_id,
+                "driver": f"{s.driver.forename} {s.driver.surname}",
+                "code": s.driver.code,
+                "team": s.team.name if s.team else None,
+                "points": s.final_points,
+                "source": "verified"
+            }
+            for s in verified
+        ]
+
+    # fallback
     rows = (
         db.query(
             Driver.id,
@@ -24,13 +52,13 @@ def driver_standings(year: int, db: Session = Depends(get_database)):
             func.sum(Result.points).label("points"),
             func.count(Result.id).label("races"),
             func.sum(case((Result.position == 1,1), else_=0)).label("wins"),
-            func.sum(case((Result.position <= 3,1), else_=0)).label("podiums"),
+            func.sum(case((Result.position <= 3,1), else_=0)).label("podiums")
         )
         .join(Result, Result.driver_id == Driver.id)
         .join(Race, Race.id == Result.race_id)
-        .outerjoin(Team, Team.id == Result.team_id)
+        .outerjoin(Team,Team.id == Result.team_id)
         .filter(Race.year == year)
-        .group_by(Driver.id, Team.name)
+        .group_by(Driver.id,Team.name)
         .order_by(func.sum(Result.points).desc())
         .all()
     )
@@ -49,6 +77,7 @@ def driver_standings(year: int, db: Session = Depends(get_database)):
             "races": row.races,
             "wins": row.wins or 0,
             "podiums": row.podiums or 0,
+            "source": "live"
         }
         for idx, row in enumerate(rows)
     ]
@@ -56,7 +85,31 @@ def driver_standings(year: int, db: Session = Depends(get_database)):
 
 @router.get("/standings/constructors/{year}")
 def constructor_standings(year: int, db: Session = Depends(get_database)):
-    """World Constructors' Championship standings for a given season"""
+    """
+    World Constructors' Championship standings for a given season.
+    Also returns official standings if available and falls back to highest points. 
+    """
+    verified = (
+        db.query(ConstructorStanding)
+        .filter(ConstructorStanding.season == year)
+        .order_by(ConstructorStanding.final_position)
+        .all()
+    )
+
+    if verified:
+        return [
+            {
+                "position": s.final_position,
+                "team_id": s.team_id,
+                "team": s.team.name,
+                "nationality": s.team.nationality,
+                "points": s.final_points,
+                "source": "verified",
+            }
+            for s in verified
+        ]
+
+    # Fallback
     rows = (
         db.query(
             Team.id,
@@ -86,6 +139,7 @@ def constructor_standings(year: int, db: Session = Depends(get_database)):
             "points": row.points or 0,
             "entries": row.entries,
             "wins": row.wins or 0,
+            "source": "live"
         }
         for idx, row in enumerate(rows)
     ]
@@ -125,7 +179,6 @@ def all_time_wins(
         }
         for idx, row in enumerate(rows)
     ]
-
 
 @router.get("/drivers/{driver_id}/career")
 def driver_career(driver_id: int, db: Session = Depends(get_database)):
@@ -173,7 +226,7 @@ def driver_career(driver_id: int, db: Session = Depends(get_database)):
             "points": totals.points or 0,
             "wins": totals.wins or 0,
             "podiums": totals.podiums or 0,
-            "points_finishes": totals.points_finishes or 0,
+            "points_finishes": totals.points_finishes or 0
         },
         "seasons": [
             {
@@ -181,7 +234,7 @@ def driver_career(driver_id: int, db: Session = Depends(get_database)):
                 "team": s.team,
                 "races": s.races,
                 "points": s.points or 0,
-                "wins": s.wins or 0,
+                "wins": s.wins or 0
             }
             for s in seasons
         ],

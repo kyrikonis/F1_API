@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
+from app.models import constructor_standing, season_standing
 from app.routers import analysis, drivers, teams, races, results
 
 Base.metadata.create_all(bind=engine)
