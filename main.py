@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routers import drivers, teams, races, results
+from app.routers import analysis, drivers, teams, races, results
 
 Base.metadata.create_all(bind=engine)
 
@@ -25,6 +25,7 @@ app.include_router(drivers.router)
 app.include_router(teams.router)
 app.include_router(races.router)
 app.include_router(results.router)
+app.include_router(analysis.router)
 
 
 @app.get("/", tags=["Root"])
