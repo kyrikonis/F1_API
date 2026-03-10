@@ -13,7 +13,7 @@ class Driver(Base):
     surname = Column(String(100), nullable=False)
     nationality = Column(String(100), nullable=False)
     date_of_birth = Column(Date)
-    number = Column(Integer, unique=True)
+    number = Column(Integer)
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
     active = Column(Boolean, default=True)
 

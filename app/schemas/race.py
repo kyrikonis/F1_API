@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date as Date
 
 from pydantic import BaseModel, Field
 
@@ -10,7 +10,7 @@ class RaceBase(BaseModel):
     circuit_name: str = Field(..., max_length=200)
     circuit_location: str | None = Field(None, max_length=200)
     country: str = Field(..., max_length=100)
-    date: date
+    date: Date
 
 
 class RaceCreate(RaceBase):
@@ -24,7 +24,7 @@ class RaceUpdate(BaseModel):
     circuit_name: str | None = Field(None, max_length=200)
     circuit_location: str | None = None
     country: str | None = Field(None, max_length=100)
-    date: date | None = None
+    date: Date | None = None
 
 
 class RaceResponse(RaceBase):
