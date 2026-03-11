@@ -45,6 +45,13 @@ def create_result(payload: ResultCreate, db: Session = Depends(get_database)):
     if not db.get(Team, payload.team_id):
         raise HTTPException(status_code=404, detail=f"Team {payload.team_id} not found")
 
+    duplicate = db.query(Result).filter(
+        Result.race_id == payload.race_id,
+        Result.driver_id == payload.driver_id,
+    ).first()
+    if duplicate:
+        raise HTTPException(status_code=409, detail="Result already exists for this driver in this race")
+
     result = Result(**payload.model_dump())
     db.add(result)
     db.commit()
