@@ -9,6 +9,7 @@ from app.models.race import Race
 from app.models.result import Result
 from app.models.season_standing import SeasonStanding
 from app.models.team import Team
+from app.utils import resolve_driver
 
 router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
@@ -180,12 +181,10 @@ def all_time_wins(
         for idx, row in enumerate(rows)
     ]
 
-@router.get("/drivers/{driver_id}/career")
-def driver_career(driver_id: int, db: Session = Depends(get_database)):
-    """Driver Career Summary: points, wins, podiums, and season breakdowns"""
-    driver = db.get(Driver, driver_id)
-    if not driver:
-        raise HTTPException(status_code=404, detail="Driver not found")
+@router.get("/drivers/{driver_ref}/career")
+def driver_career(driver_ref: str, db: Session = Depends(get_database)):
+    """Driver Career Summary: points, wins, podiums, and season breakdowns. Accepts database ID, 3 letter code, or name."""
+    driver = resolve_driver(driver_ref, db)
 
     totals = (
         db.query(
@@ -196,7 +195,7 @@ def driver_career(driver_id: int, db: Session = Depends(get_database)):
             func.sum(case((Result.position <= 10, 1), else_=0)).label("points_finishes"),
         )
         .join(Race, Race.id == Result.race_id)
-        .filter(Result.driver_id == driver_id)
+        .filter(Result.driver_id == driver.id)
         .first()
     )
 
@@ -210,7 +209,7 @@ def driver_career(driver_id: int, db: Session = Depends(get_database)):
         )
         .join(Race, Race.id == Result.race_id)
         .outerjoin(Team, Team.id == Result.team_id)
-        .filter(Result.driver_id == driver_id)
+        .filter(Result.driver_id == driver.id)
         .group_by(Race.year, Team.name)
         .order_by(Race.year)
         .all()

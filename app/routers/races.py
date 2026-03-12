@@ -5,6 +5,7 @@ from app.auth import require_api_key
 from app.database import get_database
 from app.models.race import Race
 from app.schemas.race import RaceCreate, RaceResponse, RaceUpdate
+from app.utils import resolve_race
 
 router = APIRouter(prefix="/races", tags=["Races"])
 
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/races", tags=["Races"])
 def list_races(
     year: int | None = Query(None, description="Filter by year"),
     country: str | None = Query(None, description="Filter by country"),
+    circuit: str | None = Query(None, description="Search by circuit name"),
     db: Session = Depends(get_database),
 ):
     query = db.query(Race)
@@ -20,15 +22,15 @@ def list_races(
         query = query.filter(Race.year == year)
     if country:
         query = query.filter(Race.country.ilike(f"%{country}%"))
+    if circuit:
+        query = query.filter(Race.circuit_name.ilike(f"%{circuit}%"))
     return query.order_by(Race.year, Race.round).all()
 
 
-@router.get("/{race_id}", response_model=RaceResponse)
-def get_race(race_id: int, db: Session = Depends(get_database)):
-    race = db.get(Race, race_id)
-    if not race:
-        raise HTTPException(status_code=404, detail="Race not found")
-    return race
+@router.get("/{race_ref}", response_model=RaceResponse)
+def get_race(race_ref: str, db: Session = Depends(get_database)):
+    """Fetch a race by numeric ID or name (e.g. 'Monaco' or 'British Grand Prix')."""
+    return resolve_race(race_ref, db)
 
 
 @router.post("/", response_model=RaceResponse, status_code=201, dependencies=[Security(require_api_key)])

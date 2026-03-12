@@ -5,6 +5,7 @@ from app.auth import require_api_key
 from app.database import get_database
 from app.models.driver import Driver
 from app.schemas.driver import DriverCreate, DriverResponse, DriverUpdate
+from app.utils import resolve_driver
 
 router = APIRouter(prefix="/drivers", tags=["Drivers"])
 
@@ -14,6 +15,7 @@ def list_drivers(
     active_only: bool = Query(False, description="Filter to active drivers"),
     nationality: str | None = Query(None, description="Filter by nationality"),
     team_id: int | None = Query(None, description="Filter by team ID"),
+    name: str | None = Query(None, description="Search by forename or surname"),
     db: Session = Depends(get_database),
 ):
     query = db.query(Driver)
@@ -23,14 +25,16 @@ def list_drivers(
         query = query.filter(Driver.nationality.ilike(f"%{nationality}%"))
     if team_id:
         query = query.filter(Driver.team_id == team_id)
+    if name:
+        query = query.filter(
+            Driver.forename.ilike(f"%{name}%") | Driver.surname.ilike(f"%{name}%")
+        )
     return query.order_by(Driver.surname).all()
 
-@router.get("/{driver_id}", response_model=DriverResponse)
-def get_driver(driver_id: int, db: Session = Depends(get_database)):
-    driver = db.get(Driver, driver_id)
-    if not driver:
-        raise HTTPException(status_code=404, detail="Driver not found")
-    return driver
+@router.get("/{driver_ref}", response_model=DriverResponse)
+def get_driver(driver_ref: str, db: Session = Depends(get_database)):
+    """Fetch a driver by database ID, 3 letter code (e.g. HAM), or name."""
+    return resolve_driver(driver_ref, db)
 
 @router.post("/", response_model=DriverResponse, status_code=201, dependencies=[Security(require_api_key)])
 def create_driver(payload: DriverCreate, db: Session = Depends(get_database)):

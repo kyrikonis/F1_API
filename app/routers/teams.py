@@ -5,27 +5,27 @@ from app.auth import require_api_key
 from app.database import get_database
 from app.models.team import Team
 from app.schemas.team import TeamCreate, TeamResponse, TeamUpdate
+from app.utils import resolve_team
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
-
 
 @router.get("/", response_model=list[TeamResponse])
 def list_teams(
     active_only: bool = Query(False, description="Filter to active teams only"),
+    name: str | None = Query(None, description="Search by team name"),
     db: Session = Depends(get_database),
 ):
     query = db.query(Team)
     if active_only:
         query = query.filter(Team.active == True)
+    if name:
+        query = query.filter(Team.name.ilike(f"%{name}%"))
     return query.order_by(Team.name).all()
 
-
-@router.get("/{team_id}", response_model=TeamResponse)
-def get_team(team_id: int, db: Session = Depends(get_database)):
-    team = db.get(Team, team_id)
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-    return team
+@router.get("/{team_ref}", response_model=TeamResponse)
+def get_team(team_ref: str, db: Session = Depends(get_database)):
+    """Fetch a team by numeric ID or name (e.g. 'Red_Bull', 'Ferrari')."""
+    return resolve_team(team_ref, db)
 
 
 @router.post("/", response_model=TeamResponse, status_code=201, dependencies=[Security(require_api_key)])
