@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy.orm import Session
 
+from app.auth import require_api_key
 from app.database import get_database
 from app.models.team import Team
 from app.schemas.team import TeamCreate, TeamResponse, TeamUpdate
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
+
 
 @router.get("/", response_model=list[TeamResponse])
 def list_teams(
@@ -17,6 +19,7 @@ def list_teams(
         query = query.filter(Team.active == True)
     return query.order_by(Team.name).all()
 
+
 @router.get("/{team_id}", response_model=TeamResponse)
 def get_team(team_id: int, db: Session = Depends(get_database)):
     team = db.get(Team, team_id)
@@ -25,7 +28,7 @@ def get_team(team_id: int, db: Session = Depends(get_database)):
     return team
 
 
-@router.post("/", response_model=TeamResponse, status_code=201)
+@router.post("/", response_model=TeamResponse, status_code=201, dependencies=[Security(require_api_key)])
 def create_team(payload: TeamCreate, db: Session = Depends(get_database)):
     existing = db.query(Team).filter(Team.name == payload.name).first()
     if existing:
@@ -36,7 +39,8 @@ def create_team(payload: TeamCreate, db: Session = Depends(get_database)):
     db.refresh(team)
     return team
 
-@router.patch("/{team_id}", response_model=TeamResponse)
+
+@router.patch("/{team_id}", response_model=TeamResponse, dependencies=[Security(require_api_key)])
 def update_team(team_id: int, payload: TeamUpdate, db: Session = Depends(get_database)):
     team = db.get(Team, team_id)
     if not team:
@@ -47,7 +51,8 @@ def update_team(team_id: int, payload: TeamUpdate, db: Session = Depends(get_dat
     db.refresh(team)
     return team
 
-@router.delete("/{team_id}", status_code=204)
+
+@router.delete("/{team_id}", status_code=204, dependencies=[Security(require_api_key)])
 def delete_team(team_id: int, db: Session = Depends(get_database)):
     team = db.get(Team, team_id)
     if not team:

@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.auth import require_api_key
 from app.database import Base, get_database
 from main import app
 
@@ -42,6 +43,7 @@ def client(db):
             pass
 
     app.dependency_overrides[get_database] = override_get_database
+    app.dependency_overrides[require_api_key] = lambda: None
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

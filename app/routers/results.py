@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy.orm import Session
 
+from app.auth import require_api_key
 from app.database import get_database
 from app.models.driver import Driver
 from app.models.race import Race
@@ -36,7 +37,7 @@ def get_result(result_id: int, db: Session = Depends(get_database)):
     return result
 
 
-@router.post("/", response_model=ResultResponse, status_code=201)
+@router.post("/", response_model=ResultResponse, status_code=201, dependencies=[Security(require_api_key)])
 def create_result(payload: ResultCreate, db: Session = Depends(get_database)):
     if not db.get(Race, payload.race_id):
         raise HTTPException(status_code=404, detail=f"Race {payload.race_id} not found")
@@ -59,7 +60,7 @@ def create_result(payload: ResultCreate, db: Session = Depends(get_database)):
     return result
 
 
-@router.patch("/{result_id}", response_model=ResultResponse)
+@router.patch("/{result_id}", response_model=ResultResponse, dependencies=[Security(require_api_key)])
 def update_result(result_id: int, payload: ResultUpdate, db: Session = Depends(get_database)):
     result = db.get(Result, result_id)
     if not result:
@@ -71,7 +72,7 @@ def update_result(result_id: int, payload: ResultUpdate, db: Session = Depends(g
     return result
 
 
-@router.delete("/{result_id}", status_code=204)
+@router.delete("/{result_id}", status_code=204, dependencies=[Security(require_api_key)])
 def delete_result(result_id: int, db: Session = Depends(get_database)):
     result = db.get(Result, result_id)
     if not result:

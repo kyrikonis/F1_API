@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy.orm import Session
 
+from app.auth import require_api_key
 from app.database import get_database
 from app.models.race import Race
 from app.schemas.race import RaceCreate, RaceResponse, RaceUpdate
@@ -11,7 +12,7 @@ router = APIRouter(prefix="/races", tags=["Races"])
 @router.get("/", response_model=list[RaceResponse])
 def list_races(
     year: int | None = Query(None, description="Filter by year"),
-    country: str | None = Query(None,description="Filter by country"),
+    country: str | None = Query(None, description="Filter by country"),
     db: Session = Depends(get_database),
 ):
     query = db.query(Race)
@@ -30,7 +31,7 @@ def get_race(race_id: int, db: Session = Depends(get_database)):
     return race
 
 
-@router.post("/", response_model=RaceResponse, status_code=201)
+@router.post("/", response_model=RaceResponse, status_code=201, dependencies=[Security(require_api_key)])
 def create_race(payload: RaceCreate, db: Session = Depends(get_database)):
     existing = db.query(Race).filter(
         Race.year == payload.year, Race.round == payload.round
@@ -44,7 +45,7 @@ def create_race(payload: RaceCreate, db: Session = Depends(get_database)):
     return race
 
 
-@router.patch("/{race_id}", response_model=RaceResponse)
+@router.patch("/{race_id}", response_model=RaceResponse, dependencies=[Security(require_api_key)])
 def update_race(race_id: int, payload: RaceUpdate, db: Session = Depends(get_database)):
     race = db.get(Race, race_id)
     if not race:
@@ -56,7 +57,7 @@ def update_race(race_id: int, payload: RaceUpdate, db: Session = Depends(get_dat
     return race
 
 
-@router.delete("/{race_id}", status_code=204)
+@router.delete("/{race_id}", status_code=204, dependencies=[Security(require_api_key)])
 def delete_race(race_id: int, db: Session = Depends(get_database)):
     race = db.get(Race, race_id)
     if not race:
