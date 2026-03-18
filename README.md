@@ -64,6 +64,8 @@ The key value is set via the `API_KEY` environment variable. Read operations do 
 
 Full documentation is available at `/docs` when the server is running or within [api_documentation.pdf](api_documentation.pdf).
 
+Includes example requests and responses for correct authentication, rejected requests with an invalid key, and numerous endpoints.
+
 | Tag | Method | Endpoint | Description |
 |-----|--------|------|-------------|
 | Drivers | GET | `/drivers/` | List drivers (filter by `active_only`, `nationality`, `team_id`, `name` )|
